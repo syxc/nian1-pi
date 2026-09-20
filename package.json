@@ -30,10 +30,6 @@
     "url": "https://github.com/syxc/nian1-pi/issues"
   },
   "homepage": "https://github.com/syxc/nian1-pi#readme",
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org"
-  },
   "dependencies": {
     "@dietrichgebert/ponytail": "github:DietrichGebert/ponytail",
     "@ff-labs/pi-fff": "^0.10.6",

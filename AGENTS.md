@@ -4,35 +4,36 @@
 
 ## OVERVIEW
 
-Project: **nian1-pi-preset** — an npm package that bundles personal Pi coding-agent
-resources (extensions / skills / prompts / themes) plus 22 third-party Pi packages
-(17 npm + 5 git), so one `pi install` loads everything.
-Stack: Node.js ESM (`"type": "module"`), no build step, no framework. Tests use the
-built-in `node:test`. Release automation is GitHub Actions + npm Trusted Publisher (OIDC).
+Project: **nian1-pi-preset** — a Pi preset (distributed by git, not npm) that
+bundles personal Pi coding-agent resources (extensions / skills / prompts /
+themes) plus 22 third-party Pi packages (17 npm + 5 git), so one `pi install`
+loads everything.
+Stack: Node.js ESM (`"type": "module"`), no build step, no framework, no
+first-party code beyond resource placeholders. There is no test suite. The only
+automation is a manually triggered GitHub Actions workflow that refreshes
+dependencies and opens a pull request.
 
 ## STRUCTURE
 
 *   `package.json` — the single source of truth: version, `pi` manifest, `dependencies`,
     `bundledDependencies`, `files`.
 *   `extensions/`, `skills/`, `prompts/`, `themes/` — own resources (currently `.gitkeep` placeholders).
-*   `.github/scripts/generate-release-notes.mjs` — dependency-free Conventional-Commits →
-    Markdown release-notes generator (CLI + exported pure functions).
-*   `.github/scripts/generate-release-notes.test.mjs` — its tests, kept beside the script.
-*   `test/generate-release-notes.test.mjs` — 4-line wrapper so `node --test` finds them from the repo root.
-*   `.github/workflows/daily-release.yml` — the whole release pipeline.
+*   `.github/workflows/update-dependencies.yml` — manual `workflow_dispatch` job: runs
+    `npm-check-updates`, verifies the Pi manifest paths resolve, and opens a PR. Nothing is
+    published or tagged.
 *   `.pi/npm/` — private local extensions workspace; **not** published (`files` excludes it).
-*   `README.md` — user-facing, written in Chinese; update it when the install/release flow changes.
+*   `README.md` — user-facing, written in Chinese; update it when the install/automation flow changes.
 
 ## COMMANDS
 
 | Action           | Command |
 |------------------|---------|
 | Install          | `npm ci --allow-git=root` |
-| Test             | `node --test` |
 | Build            | none (nothing is compiled) |
+| Test             | none (no first-party code/tests) |
 | Load locally     | `pi -e .` (session only) or `pi install .` |
 | Inspect manifest | `pi config` |
-| Generate notes   | `node .github/scripts/generate-release-notes.mjs --base-ref <ref> --head-ref <ref> --tag <tag> --repository owner/repo --output -` |
+| Refresh deps     | Actions → Update dependencies → Run workflow (opens a PR) |
 
 `--allow-git=root` is required: npm 12 defaults `allow-git` to `none`, and this
 preset has 5 root git dependencies (`@dietrichgebert/ponytail`, `@joelhooks/pi-until`,
@@ -40,36 +41,29 @@ preset has 5 root git dependencies (`@dietrichgebert/ponytail`, `@joelhooks/pi-u
 
 ## CODING STANDARDS
 
-*   **Language**: ESM only, `node:`-prefixed builtin imports, no TypeScript.
-*   **Style**: double quotes, 2-space indent, semicolons, trailing commas; arrow functions and
-    `const`; small exported pure functions (`buildReleaseNotes`, `compareDependencies`,
-    `parseArgs`) with git/filesystem work isolated in the wrapper (`generateReleaseNotes`, `runGit`).
-*   **Scripts stay dependency-free**: stdlib + `node:test` + `node:assert/strict` only. No linter
-    or formatter is configured — match surrounding style.
-*   **Comments** explain *why* (security, atomicity, escaping), not *what*. All code, comments,
+*   **Language**: ESM only, `node:`-prefixed built-in imports.
+*   **Style**: double quotes, 2-space indent, semicolons, trailing commas; arrow functions and `const`.
+*   No linter or formatter is configured — match surrounding style.
+*   **Comments** explain *why* (security, ordering, escaping), not *what*. All code, comments,
     identifiers, and commit messages in English.
-*   **Commits**: Conventional Commits (`feat(scope): ...`, `fix(ci): ...`). This feeds the
-    release-notes grouping (`feat`→Features, `fix`→Fixes, `perf`→Performance, `docs`→Documentation,
-    everything else→Maintenance).
+*   **Commits**: Conventional Commits (`feat(scope): ...`, `fix(ci): ...`, `chore(deps): ...`).
 
 ## WHERE TO LOOK
 
-*   **Source**: `.github/scripts/`
-*   **Tests**: `.github/scripts/*.test.mjs` (entry point: `test/`)
-*   **Release flow docs**: `README.md` sections "自动发布" / "GitHub Releases and release notes"
-*   **CI**: `.github/workflows/daily-release.yml`
+*   **Manifest / dependencies**: `package.json`
+*   **Automation docs**: `README.md` section "依赖更新"
+*   **CI**: `.github/workflows/update-dependencies.yml`
 
 ## NOTES
 
-*   **Pushing to `main` publishes to npm.** Any push triggers a release; if the current version
-    already exists on npm, CI bumps patch, commits `chore(release): X.Y.Z`, tags `vX.Y.Z`, pushes,
-    and creates the GitHub Release. Only CI's own `chore(release):` pushes are skipped.
-*   Version bumps: a manual bump is honored if unpublished; otherwise CI patches for you. Don't
-    hand-edit `package-lock.json` versions — run `npm install`.
-*   Daily `0 16 * * *` UTC cron runs `npm-check-updates` on **direct** deps only and releases only
-    if something changed. `workflow_dispatch` with `force_publish: true` releases regardless.
-*   Auth is OIDC — **never** add `NPM_TOKEN` or other secrets to the repo. Requires node >= 24 in
-    CI and npm >= 11.5.1 (workflow upgrades npm).
+*   **This preset is distributed by git, never published to npm.** Do not add `npm publish`,
+    OIDC/Trusted-Publisher, version tagging, or release-note steps. Do not add `NPM_TOKEN`
+    or other publishing secrets.
+*   Dependency refresh is manual only: `workflow_dispatch` runs `npm-check-updates` on direct
+    deps, applies the lockfile update, verifies the `pi` manifest paths resolve, and opens a PR
+    against the base branch. Requires node >= 24 and npm >= 12 in CI (workflow upgrades npm),
+    and `contents: write` + `pull-requests: write` permissions.
+*   Don't hand-edit `package-lock.json` versions — run `npm install`.
 *   Bundle a new Pi package by adding it to `dependencies` **and** `bundledDependencies`, then
     pointing `pi.extensions` / `pi.skills` at its `node_modules/...` path. Pi core packages
     (`@earendil-works/pi-*`, `typebox`) belong in `peerDependencies` as `"*"` and stay unbundled.
@@ -77,12 +71,7 @@ preset has 5 root git dependencies (`@dietrichgebert/ponytail`, `@joelhooks/pi-u
     Pi core packages the runtime provides (e.g. several packages require `@earendil-works/pi-tui`
     `>=0.74.0 <0.80.0` while this preset tracks 0.85.x). `force` tolerates the conflict and still
     installs the peer tree. Do **not** switch to `legacy-peer-deps`: it drops the entire
-    `@earendil-works/*` peer subtree from the lock and trips `EALLOWGIT` during re-resolution.
-    `npm overrides` cannot express this — it does not apply to peer ranges.
-*   `pi-fff-non-ascii-guard` must load **before** other extensions that touch fff-core: it
-    renames non-ASCII filenames so fff search does not panic on UTF-8 byte boundaries.
-*   Release-note text is Markdown-escaped on purpose (`escapeMarkdown` / `escapeCode`) — commit
-    subjects are attacker-influenced input into `gh release create`.
+    `@earendil-works/*` peer subtree from the lock.
 *   Repo uses a `.gitlock` file as a commit lock: create it before committing, delete it after; if
     it already exists, wait 30s and re-check.
 *   Global user rules live in `~/.claude/CLAUDE.md` (Chinese replies, English code/docs, `gh` CLI
@@ -90,4 +79,5 @@ preset has 5 root git dependencies (`@dietrichgebert/ponytail`, `@joelhooks/pi-u
 
 ## SELF-CHECK
 
-`node --test` must pass (5 tests) before claiming the release-notes generator works.
+Before claiming the preset works locally: `npm ci --allow-git=root` must install cleanly and
+`pi -e .` must load all bundled resources without errors.

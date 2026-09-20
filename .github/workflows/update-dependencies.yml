@@ -1,0 +1,91 @@
+name: Update dependencies
+
+# This preset is distributed by git, not npm. The only automation is a manual
+# dependency refresh: bump direct npm dependencies, verify the Pi manifest still
+# resolves, and open a pull request. Nothing is published or tagged.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-dependencies
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Ensure modern npm (allow-git flag requires npm >= 12)
+        run: npm install -g npm@latest
+
+      - name: Install current dependencies
+        # npm 12 defaults allow-git to "none"; this preset bundles 5 root git dependencies.
+        run: npm ci --allow-git=root
+
+      - name: Bump direct npm dependencies
+        # Only semver npm deps move; `github:` sources have no registry version.
+        run: npx npm-check-updates -u
+
+      - name: Apply updates to lockfile
+        run: npm install --allow-git=root
+
+      - name: Verify Pi manifest paths resolve
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+          let missing = 0;
+          for (const kind of ["extensions", "skills", "prompts", "themes"]) {
+            for (const entry of pkg.pi?.[kind] ?? []) {
+              if (!entry.startsWith("node_modules/")) continue;
+              if (!fs.existsSync(entry)) {
+                console.error(`Missing ${kind} path: ${entry}`);
+                missing++;
+              }
+            }
+          }
+          if (missing > 0) process.exit(1);
+          console.log("All Pi manifest paths resolve.");
+          NODE
+
+      - name: Open pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- package.json package-lock.json; then
+            echo "No dependency changes; nothing to commit."
+            exit 0
+          fi
+
+          BRANCH="chore/update-dependencies"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git checkout -B "$BRANCH"
+          git add package.json package-lock.json
+          git commit -m "chore(deps): update dependencies"
+          # This branch is owned solely by this workflow, so a force push is safe.
+          git push --force-with-lease origin "HEAD:$BRANCH"
+
+          if gh pr view "$BRANCH" >/dev/null 2>&1; then
+            echo "Pull request already exists; branch updated."
+          else
+            gh pr create \
+              --base "$GITHUB_REF_NAME" \
+              --head "$BRANCH" \
+              --title "chore(deps): update dependencies" \
+              --body "Automated dependency update from npm-check-updates. Pi manifest paths verified. No npm publish."
+          fi
