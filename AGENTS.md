@@ -4,9 +4,9 @@
 
 ## OVERVIEW
 
-Project: **bestony-pi-preset** — an npm package that bundles personal Pi coding-agent
-resources (extensions / skills / prompts / themes) plus a set of third-party Pi packages,
-so one `pi install` loads everything.
+Project: **nian1-pi-preset** — an npm package that bundles personal Pi coding-agent
+resources (extensions / skills / prompts / themes) plus 22 third-party Pi packages
+(17 npm + 5 git), so one `pi install` loads everything.
 Stack: Node.js ESM (`"type": "module"`), no build step, no framework. Tests use the
 built-in `node:test`. Release automation is GitHub Actions + npm Trusted Publisher (OIDC).
 
@@ -34,8 +34,9 @@ built-in `node:test`. Release automation is GitHub Actions + npm Trusted Publish
 | Inspect manifest | `pi config` |
 | Generate notes   | `node .github/scripts/generate-release-notes.mjs --base-ref <ref> --head-ref <ref> --tag <tag> --repository owner/repo --output -` |
 
-`--allow-git=root` is required: npm 12 defaults `allow-git` to `none`, and
-`commandcode-go-for-pi` is a root git dependency.
+`--allow-git=root` is required: npm 12 defaults `allow-git` to `none`, and this
+preset has 5 root git dependencies (`@dietrichgebert/ponytail`, `@joelhooks/pi-until`,
+`pi-autoresearch`, `pi-fff-non-ascii-guard`, `sol-pi`).
 
 ## CODING STANDARDS
 
@@ -72,12 +73,14 @@ built-in `node:test`. Release automation is GitHub Actions + npm Trusted Publish
 *   Bundle a new Pi package by adding it to `dependencies` **and** `bundledDependencies`, then
     pointing `pi.extensions` / `pi.skills` at its `node_modules/...` path. Pi core packages
     (`@earendil-works/pi-*`, `typebox`) belong in `peerDependencies` as `"*"` and stay unbundled.
-*   `.npmrc` sets `force=true` because bundled Pi packages sometimes pin **stale** peer ranges on
-    Pi core packages the runtime provides (e.g. `@mohndoe/pi-atlas` wants `@earendil-works/pi-tui`
-    `>=0.74.0 <0.77.0` while this preset tracks 0.84.x). `force` tolerates the conflict and still
+*   `.npmrc` sets `force=true` because bundled Pi packages routinely pin **stale** peer ranges on
+    Pi core packages the runtime provides (e.g. several packages require `@earendil-works/pi-tui`
+    `>=0.74.0 <0.80.0` while this preset tracks 0.85.x). `force` tolerates the conflict and still
     installs the peer tree. Do **not** switch to `legacy-peer-deps`: it drops the entire
-    `@earendil-works/*` peer subtree from the lock (~1000 entries) and trips `EALLOWGIT` during
-    re-resolution. `npm overrides` cannot express this — it does not apply to peer ranges.
+    `@earendil-works/*` peer subtree from the lock and trips `EALLOWGIT` during re-resolution.
+    `npm overrides` cannot express this — it does not apply to peer ranges.
+*   `pi-fff-non-ascii-guard` must load **before** other extensions that touch fff-core: it
+    renames non-ASCII filenames so fff search does not panic on UTF-8 byte boundaries.
 *   Release-note text is Markdown-escaped on purpose (`escapeMarkdown` / `escapeCode`) — commit
     subjects are attacker-influenced input into `gh release create`.
 *   Repo uses a `.gitlock` file as a commit lock: create it before committing, delete it after; if

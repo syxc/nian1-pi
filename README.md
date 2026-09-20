@@ -1,8 +1,8 @@
-# bestony-pi-preset
+# nian1-pi-preset
 
-Bestony 的 [Pi](https://pi.dev) coding agent preset。
+nian1 的 [Pi](https://pi.dev) coding agent preset。
 
-通过 Pi Package 打包并分发个人常用的 **extensions / skills / prompts / themes**，安装后即可在 Pi 中自动加载。
+通过 Pi Package 打包并分发个人常用的 **extensions / skills / prompts / themes**，一次 `pi install` 即加载全部 22 个常用插件。
 
 > **Security:** Pi packages 拥有完整系统权限。Extensions 可执行任意代码，skills 可指示模型执行任意操作。安装第三方包前请先审阅源码。
 
@@ -10,43 +10,43 @@ Bestony 的 [Pi](https://pi.dev) coding agent preset。
 
 ```bash
 # 从本地路径安装（开发中）
-pi install /absolute/path/to/bestony-pi
-pi install ./relative/path/to/bestony-pi
+pi install /absolute/path/to/nian1-pi
+pi install ./relative/path/to/nian1-pi
 
-# 从 git 安装（发布后）
-pi install git:github.com/bestony/bestony-pi
-pi install https://github.com/bestony/bestony-pi
+# 从 git 安装
+pi install git:github.com/syxc/nian1-pi
+pi install https://github.com/syxc/nian1-pi
 
 # 从 npm 安装（发布后）
-pi install npm:bestony-pi-preset
+pi install npm:nian1-pi-preset
 ```
 
 仅当前会话试用（不写入 settings）：
 
 ```bash
-pi -e /path/to/bestony-pi
-pi -e git:github.com/bestony/bestony-pi
+pi -e /path/to/nian1-pi
+pi -e git:github.com/syxc/nian1-pi
 ```
 
 安装到项目级（写入 `.pi/settings.json`，可团队共享）：
 
 ```bash
-pi install -l /path/to/bestony-pi
+pi install -l /path/to/nian1-pi
 ```
 
 ## 卸载 / 管理
 
 ```bash
-pi remove npm:bestony-pi-preset   # 或对应 source
+pi remove npm:nian1-pi-preset   # 或对应 source
 pi list
 pi update --extensions
-pi config                         # 启用/禁用具体资源
+pi config                       # 启用/禁用具体资源
 ```
 
 ## 包结构
 
 ```
-bestony-pi/
+nian1-pi/
 ├── package.json          # pi manifest + pi-package keyword
 ├── README.md
 ├── extensions/           # .ts / .js 扩展
@@ -59,7 +59,7 @@ bestony-pi/
 
 ```json
 {
-  "name": "bestony-pi-preset",
+  "name": "nian1-pi-preset",
   "keywords": ["pi-package"],
   "pi": {
     "extensions": ["./extensions"],
@@ -100,34 +100,44 @@ pi install .
   - `@earendil-works/pi-coding-agent`
   - `@earendil-works/pi-tui`
   - `typebox`
-- 部分第三方包对 Pi 核心包的 peer range 已过期（如 `@mohndoe/pi-atlas` 要求
-  `@earendil-works/pi-tui >=0.74.0 <0.77.0`，而本 preset 跟随 Pi 运行时 0.84.x）。
-  仓库根目录 `.npmrc` 因此设置 `force=true`，让 `npm ci` 容忍这类冲突但不丢弃 peer 树。
+- 捆绑包对 Pi 核心包的 peer range 经常已过期（例如多个包要求
+  `@earendil-works/pi-tui >=0.74.0`，而运行时已在 0.85.x）。仓库根目录 `.npmrc`
+  因此设置 `force=true`，让 `npm ci` 容忍这类冲突但不丢弃 peer 树。
   不要改用 `legacy-peer-deps`（会从 lock 中移除整个 `@earendil-works/*` peer 子树）。
+- 本 preset 包含 5 个 git 来源依赖；npm 12 默认 `allow-git=none`，安装时需加
+  `--allow-git=root`。
 
 ## 内置依赖（bundled pi packages）
 
-安装本 preset 时会一并带上下列 Pi 包，并自动加载其 extensions / skills：
+安装本 preset 时会一并带上下列 22 个 Pi 包，并自动加载其 extensions / skills / prompts / themes。
 
-| 包 | 提供 |
-|----|------|
-| [pi-web-access](https://www.npmjs.com/package/pi-web-access) | Web 搜索 / URL 抓取 / GitHub / YouTube 等扩展 + librarian skill |
-| [pi-init](https://www.npmjs.com/package/pi-init) | `init` skill（生成/更新 AGENTS.md） |
-| [pi-mcp-adapter](https://www.npmjs.com/package/pi-mcp-adapter) | MCP 协议适配扩展 |
-| [pi-cache-optimizer](https://www.npmjs.com/package/pi-cache-optimizer) | Prompt/KV cache 命中优化 |
-| [pi-session-name](https://www.npmjs.com/package/pi-session-name) | 自动生成会话标题并同步终端标题状态 |
-| [@lanlance/pi-recap](https://www.npmjs.com/package/@lanlance/pi-recap) | Claude Code-style session recap / status line above the Pi status bar |
-| [@mohndoe/pi-atlas](https://www.npmjs.com/package/@mohndoe/pi-atlas) | 在 Pi 内查看 agent 用量与花费（cost / 语言 / 模型 / 项目 / 工具，数据来自 session 日志） |
-| [@dietrichgebert/ponytail](https://www.npmjs.com/package/@dietrichgebert/ponytail) | `pi-extension` + `skills` for status line and agent-mode tooling |
-| [@narumitw/pi-goal](https://www.npmjs.com/package/@narumitw/pi-goal) | Autonomous single-objective `/goal` completion extension |
-| [@narumitw/pi-plan-mode](https://www.npmjs.com/package/@narumitw/pi-plan-mode) | Codex 风格的只读 `/plan` 协作模式 |
-| [pi-xai-oauth](https://www.npmjs.com/package/pi-xai-oauth) | xAI OAuth provider / authenticated Grok model catalog |
-| [@tintinweb/pi-subagents](https://www.npmjs.com/package/@tintinweb/pi-subagents) | Claude Code 风格的自主 sub-agents |
-| [@tintinweb/pi-tasks](https://www.npmjs.com/package/@tintinweb/pi-tasks) | Claude Code-style task tracking and coordination |
-| [@quintinshaw/pi-dynamic-workflows](https://www.npmjs.com/package/@quintinshaw/pi-dynamic-workflows) | 动态 workflow（`workflow` 工具、`/workflows` 等） |
-| [commandcode-go-for-pi](https://github.com/gonegirl07/commandcode-go-for-pi) | Command Code Go/GOAT provider（`commandcode` 模型目录、reasoning 控制、`/cc-usage` 用量查询） |
+| 包 | 来源 | 提供 |
+|----|------|------|
+| [pi-mcp-adapter](https://www.npmjs.com/package/pi-mcp-adapter) | npm | MCP 协议适配扩展，把 MCP server 工具接入 Pi |
+| [pi-web-access](https://www.npmjs.com/package/pi-web-access) | npm | Web 搜索 / URL 抓取 / GitHub clone / PDF / YouTube 等 |
+| [@ff-labs/pi-fff](https://www.npmjs.com/package/@ff-labs/pi-fff) | npm | FFF 驱动的模糊文件与内容搜索 |
+| [pi-fff-non-ascii-guard](https://github.com/eiei114/pi-fff-non-ascii-guard) | git | fff 搜索前检测并重命名非 ASCII 文件名，避免 UTF-8 边界 panic |
+| [pi-subagents](https://www.npmjs.com/package/pi-subagents) | npm | 单 agent 委派与脚本化多 agent 工作流 |
+| [pi-messenger](https://www.npmjs.com/package/pi-messenger) | npm | agent 间消息传递与文件占用协调 |
+| [pi-btw](https://www.npmjs.com/package/pi-btw) | npm | `/btw` 并行支线对话 |
+| [@juicesharp/rpiv-todo](https://www.npmjs.com/package/@juicesharp/rpiv-todo) | npm | 模型驱动的 todo 列表，存活于 `/reload` 与会话压缩 |
+| [pi-goals](https://www.npmjs.com/package/pi-goals) | npm | 持久化目标跟踪，带预算、可复用 prompt 与 churn 监控 |
+| [context-mode](https://www.npmjs.com/package/context-mode) | npm | 沙箱代码执行 + FTS5 知识索引，节省上下文窗口 |
+| [pi-hermes-memory](https://www.npmjs.com/package/pi-hermes-memory) | npm | 持久记忆 / 会话搜索 / 密钥扫描 |
+| [@sting8k/pi-vcc](https://www.npmjs.com/package/@sting8k/pi-vcc) | npm | 无 LLM 调用的结构化会话压缩，保留原文转录 |
+| [sol-pi](https://github.com/NVlabs/SoL-Pi) | git | 上下文与工具效率扩展（NVlabs） |
+| [pi-cache-optimizer](https://www.npmjs.com/package/pi-cache-optimizer) | npm | Prompt/KV cache 命中率优化 |
+| [visual-explainer](https://www.npmjs.com/package/visual-explainer) | npm | 生成图表 / diff review / plan review / slides 的 HTML 页面 |
+| [pi-warden](https://www.npmjs.com/package/pi-warden) | npm | 按 `pi-warden.md` 对每次写入做规则校验 |
+| [pi-cc-extensions](https://www.npmjs.com/package/pi-cc-extensions) | npm | Claude Code 风格 UI、上下文检视 + cc-dark/cc-light 主题 |
+| [pi-autoresearch](https://github.com/davebcn87/pi-autoresearch) | git | 自主实验循环：运行、测量、保留或丢弃 |
+| [@joelhooks/pi-until](https://github.com/syxc/pi-until) | git | shell 条件监视与周期性 agent 跟进（含个人 fork） |
+| [pi-rewind-hook](https://www.npmjs.com/package/pi-rewind-hook) | npm | 自动 git checkpoint，支持文件/会话回退 |
+| [@juicesharp/rpiv-ask-user-question](https://www.npmjs.com/package/@juicesharp/rpiv-ask-user-question) | npm | 结构化问询卡片，避免模型替用户猜测 |
+| [@dietrichgebert/ponytail](https://github.com/DietrichGebert/ponytail) | git | 懒惰资深工程师模式：最好的代码是没写的代码 |
 
-它们声明在 `dependencies` + `bundledDependencies` 中，资源通过 `pi.extensions` / `pi.skills` 的 `node_modules/...` 路径引用。
+它们声明在 `dependencies` + `bundleDependencies` 中，资源通过 `pi.extensions` /
+`pi.skills` / `pi.prompts` / `pi.themes` 的 `node_modules/...` 路径引用。
 
 ## 自动发布
 
@@ -155,7 +165,7 @@ Bot 自己的 `chore(release):` 提交不会再次触发发布，避免循环。
 
 首次启用前请确认：
 
-- npm 包 Settings → Trusted Publisher 指向 `bestony` / `bestony-pi` / `daily-release.yml`
+- npm 包 Settings → Trusted Publisher 指向 `syxc` / `nian1-pi` / `daily-release.yml`
 - 仓库 Settings → Actions → Workflow permissions 为 **Read and write**
 
 ### GitHub Releases and release notes
@@ -180,7 +190,7 @@ states `Maintenance release with no user-facing changes.`
 If a release with the same tag already exists, the workflow logs the condition
 and skips creation; any other `gh release create` failure fails the workflow.
 Published releases are visible at
-[GitHub Releases](https://github.com/bestony/bestony-pi/releases).
+[GitHub Releases](https://github.com/syxc/nian1-pi/releases).
 
 ## 当前本地资源
 
